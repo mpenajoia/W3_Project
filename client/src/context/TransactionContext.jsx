@@ -12,31 +12,63 @@ const getEthereumContract = () => {
     const signer = provider.getSigner();
     const transactionContract = new ethers.Contract(contractAddress, contractAbi, signer);
 
-    console.log({
-        provider,
-        signer,
-        transactionContract
-    });
+    return transactionContract;
 }
 
 export const TransactionProvider = ({ children }) => {
-    const [connectedAccount, setConnectedAccount] = useState('')
+    const [currentAccount, setCurrentAccount] = useState('');
+    const [formData, setFormData] = useState({ addressTo: '', amount: '', keyword: '', message: ''});
 
+    const handleChange = (e, name) => {
+        setFormData((prevState) => ({...prevState, [name]: e.target.value }));
+    }
+
+    //checks to see if a wallet is already connected
     const checkIfWalletIsConnected = async () => {
-        if(!ethereum) return alert('Please Install Metamask');
-
-        const accounts = await ethereum.request({method: 'eth_accounts'})
-
-        console.log(accounts);
+        try {
+            if(!ethereum) return alert('Please Install Metamask');
+    
+            const accounts = await ethereum.request({method: 'eth_accounts'})
+    
+            if(accounts.length) {
+                setCurrentAccount(accounts[0]);
+    
+                //getAllTransactions();
+            } else {
+                console.log('no accounts found')
+            }
+    
+            console.log(accounts);
+            
+        } catch (error) {
+            console.log(error);
+        
+            throw new Error("No Ethereum object.")
+            
+        }
+        
 
     }
 
-    //connect to wallet
+    //connect to wallet/account
     const connectWallet = async () => {
         try{
             if(!ethereum) return alert('Please Install Metamask');
             const accounts = await ethereum.request({method: 'eth_requestAccounts'});
             setCurrentAccount(accounts[0]);
+        } catch (error) {
+            console.log(error);
+
+            throw new Error("No Ethereum object.")
+        }
+    }
+//all logic for sending transactions
+    const sendTransaction = async () => {
+        try {
+            if(!ethereum) return alert('Please Install Metamask');
+
+            const { addressTo, amount, keyword, message } = formData;
+            const transactionContract = getEthereumContract();
         } catch (error) {
             console.log(error);
 
@@ -49,7 +81,7 @@ export const TransactionProvider = ({ children }) => {
     }, []);
 
     return (
-        <TransactionContext.Provider value={{ connectWallet }}>
+        <TransactionContext.Provider value={{ connectWallet, currentAccount, formData, setFormData, handleChange, sendTransaction }}>
             {children}
         </TransactionContext.Provider>
     )
