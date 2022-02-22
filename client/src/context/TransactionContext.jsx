@@ -12,8 +12,7 @@ const getEthereumContract = () => {
     const signer = provider.getSigner();
     const transactionContract = new ethers.Contract(contractAddress, contractAbi, signer);
 
-    const [ transactionCount, setTransactionCount ] = useState(localStorage.getItem('transactionCount'));
-
+    
     return transactionContract;
 }
 
@@ -21,6 +20,7 @@ export const TransactionProvider = ({ children }) => {
     const [currentAccount, setCurrentAccount] = useState('');
     const [formData, setFormData] = useState({ addressTo: '', amount: '', keyword: '', message: ''});
     const [isLoading, setIsLoading] = useState(false);
+    const [ transactionCount, setTransactionCount ] = useState(localStorage.getItem('transactionCount'));
 
     const handleChange = (e, name) => {
         setFormData((prevState) => ({...prevState, [name]: e.target.value }));
@@ -73,7 +73,7 @@ export const TransactionProvider = ({ children }) => {
             const { addressTo, amount, keyword, message } = formData;
             const transactionContract = getEthereumContract();
             // convert amount into hex/eth
-            const parseAmount = ethers.utils.parseEther(amount);
+            const parsedAmount = ethers.utils.parseEther(amount);
 
             await ethereum.request({
                 method: 'eth_sendTransaction',
@@ -81,17 +81,20 @@ export const TransactionProvider = ({ children }) => {
                     from: currentAccount,
                     to: addressTo,
                     gas: '0x5208', // 2100 GWEI
-                    value: parseAmount._hex, // 
+                    value: parsedAmount._hex,  
 
                 }]
             });
 
-            const transactionHash = await transactionContract.addToBlockchain(addressTo, parseAmount, message, keyword);
+            const transactionHash = await transactionContract.addToBlockchain(addressTo, parsedAmount, message, keyword);
+
             setIsLoading(true);
-            console.log(`Loading - ${transaction.hash}`);
+            console.log(`Loading - ${transactionHash.hash}`);
+
             await transactionHash.wait();
+
             setIsLoading(false);
-            console.log(`Success - ${transaction.hash}`);
+            console.log(`Success - ${transactionHash.hash}`);
 
             const transactionCount = await transactionContract.getTransactionCount();
 
